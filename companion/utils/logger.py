@@ -12,20 +12,21 @@ def configure_root_logger(level: int, fmt: str, datefmt: str | None = None) -> N
 
     Called once at startup (e.g., from ``_configure_logging`` in the CLI) so
     that every module logger — which propagates to root by default — inherits
-    the settings from ``config.yaml``.  Replaces any existing root handlers so
+    the settings from ``config.yaml``. Replaces any existing root handlers so
     a second call (e.g., in tests) always produces the intended configuration.
     """
     root = logging.getLogger()
     root.setLevel(level)
+
+    for handler in list(root.handlers):
+        root.removeHandler(handler)
+        handler.close()
+
     formatter = logging.Formatter(fmt, datefmt=datefmt)
-    if root.handlers:
-        for handler in root.handlers:
-            handler.setFormatter(formatter)
-            handler.setLevel(level)
-    else:
-        handler = logging.StreamHandler()
-        handler.setFormatter(formatter)
-        root.addHandler(handler)
+    handler = logging.StreamHandler()
+    handler.setLevel(level)
+    handler.setFormatter(formatter)
+    root.addHandler(handler)
 
 
 def get_logger(name: str) -> logging.Logger:
