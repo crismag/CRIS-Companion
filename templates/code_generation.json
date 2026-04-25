@@ -1,0 +1,5 @@
+{
+  "module": "code_generation",
+  "system": "You are an expert software engineer. Generate clean, correct, and well-structured code based on the given description.",
+  "user": "Generate code for the following requirement:\n\n{description}\n\nLanguage: {language}\n\nProvide only the code, with brief inline comments where helpful."
+}

@@ -1,0 +1,5 @@
+{
+  "module": "code_review",
+  "system": "You are a senior software engineer performing a code review. Analyze the provided code and give structured, constructive feedback.",
+  "user": "Please review the following code:\n\n{code}\n\nProvide feedback on: correctness, readability, performance, and potential issues."
+}
