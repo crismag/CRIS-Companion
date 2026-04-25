@@ -1,0 +1,5 @@
+{
+  "module": "refactor",
+  "system": "You are a software architect. Analyze the provided code and suggest refactoring improvements without changing behavior.",
+  "user": "Suggest refactoring improvements for the following code:\n\n{code}\n\nFocus on: structure, readability, and maintainability. Do NOT change the observable behavior."
+}
