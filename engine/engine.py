@@ -122,7 +122,15 @@ class Engine:
         template_path = os.path.join(
             os.path.dirname(__file__), "..", module_cfg["template"]
         )
-        return self._template_loader.load_from_path(template_path)
+        template = self._template_loader.load_from_path(template_path)
+        missing_keys = [key for key in ("system", "user") if key not in template]
+        if missing_keys:
+            missing_keys_str = ", ".join(sorted(missing_keys))
+            raise ValueError(
+                f"Invalid template for module '{module_name}' at '{template_path}': "
+                f"missing required key(s): {missing_keys_str}"
+            )
+        return template
 
     def _build_user_prompt(self, user_template: str, context: dict[str, Any]) -> str:
         """Build user prompt text from template and context."""
