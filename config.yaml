@@ -1,0 +1,27 @@
+engine:
+  model: llama3
+  base_url: http://localhost:11434
+  timeout: 120
+
+modules:
+  code_review:
+    template: templates/code_review.json
+    description: Review code for quality and issues
+  code_generation:
+    template: templates/code_generation.json
+    description: Generate code from a description
+  refactor:
+    template: templates/refactor.json
+    description: Suggest refactoring improvements
+
+task_controller:
+  default_module: code_review
+  mappings:
+    review: code_review
+    generate: code_generation
+    refactor: refactor
+
+logging:
+  level: INFO
+  format: "%(asctime)s [%(levelname)s] %(name)s — %(message)s"
+  datefmt: "%Y-%m-%dT%H:%M:%S"
