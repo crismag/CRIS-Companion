@@ -25,13 +25,29 @@ logger = get_logger(__name__)
 
 
 def _configure_logging(config_path: str = "config.yaml") -> None:
-    cfg = load_config_file(config_path)
-    log_cfg = cfg["logging"]
-    level = getattr(logging, log_cfg["level"])
-    fmt = log_cfg["format"]
-    datefmt = log_cfg["datefmt"]
-
-    logging.basicConfig(level=level, format=fmt, datefmt=datefmt)
+    try:
+        cfg = load_config_file(config_path)
+        log_cfg = cfg["logging"]
+        level = getattr(logging, log_cfg["level"])
+        fmt = log_cfg["format"]
+        datefmt = log_cfg["datefmt"]
+        logging.basicConfig(level=level, format=fmt, datefmt=datefmt)
+    except FileNotFoundError:
+        print(
+            f"FATAL: Configuration file '{config_path}' was not found.\n"
+            "CRIS Companion requires a valid 'config.yaml' to run. "
+            "Please complete the setup step to generate or restore this file before using the CLI.",
+            file=sys.stderr,
+        )
+        sys.exit(1)
+    except (KeyError, AttributeError, ValueError) as exc:
+        print(
+            f"FATAL: Configuration error in '{config_path}': {exc}\n"
+            "Please check your 'config.yaml' and ensure all required logging settings "
+            "(level, format, datefmt) are present and correct.",
+            file=sys.stderr,
+        )
+        sys.exit(1)
 
 
 def _build_parser() -> argparse.ArgumentParser:
