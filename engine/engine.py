@@ -29,7 +29,8 @@ def _load_json_template(path: str | Path) -> dict[str, Any]:
     validation path.  It intentionally has no dependency on
     ``companion.config`` beyond plain JSON file I/O.
     """
-    resolved = Path(path) if Path(path).is_absolute() else Path(os.path.dirname(__file__)) / path
+    path_obj = Path(path)
+    resolved = path_obj if path_obj.is_absolute() else Path(__file__).parent / path_obj
     if not resolved.exists():
         raise FileNotFoundError(f"Template not found: {resolved}")
     with resolved.open("r", encoding="utf-8") as fh:
