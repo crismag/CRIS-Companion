@@ -21,7 +21,12 @@ def _read_config_file(path: Path) -> dict:
         parsed = yaml.safe_load(content)
         return parsed if isinstance(parsed, dict) else {}
     except ModuleNotFoundError:
-        parsed = json.loads(content)
+        try:
+            parsed = json.loads(content)
+        except json.JSONDecodeError as exc:
+            raise ValueError(
+                f"Invalid configuration file '{path}': the file is not valid YAML or JSON."
+            ) from exc
         return parsed if isinstance(parsed, dict) else {}
 
 

@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import socket
 from urllib import error, request
 
 
@@ -35,8 +36,10 @@ def generate_text(prompt: str, settings: dict | None = None) -> str:
         with request.urlopen(http_request, timeout=timeout_seconds) as response:
             body = json.loads(response.read().decode("utf-8"))
     except error.URLError as exc:
+        if isinstance(exc.reason, socket.timeout):
+            return "LLM request failed: timeout"
         return f"LLM request failed: {exc.reason}"
-    except TimeoutError:
+    except (TimeoutError, socket.timeout):
         return "LLM request failed: timeout"
     except json.JSONDecodeError:
         return "LLM request failed: invalid JSON response"

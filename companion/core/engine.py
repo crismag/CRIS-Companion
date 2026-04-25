@@ -39,18 +39,25 @@ class Engine:
         self.controller = TaskController()
         self.executor = StepExecutor(get_provider(settings))
 
-    def _log_phase(self, phase_name: str) -> None:
+    def _log_phase(self, phase: str, phase_label: str | None = None) -> None:
         """Log phase transitions in a structured control-plane-friendly format."""
-        self.logger.info("event=engine_phase phase=%s status=start", phase_name)
+        if phase_label is None:
+            self.logger.info("event=engine_phase phase=%s status=start", phase)
+            return
+        self.logger.info(
+            "event=engine_phase phase=%s phase_label=%s status=start",
+            phase,
+            phase_label,
+        )
 
     def run(self, task: str) -> dict:
         """Execute one run via task->step->result single-pass workflow."""
         messages = _result_messages(self.settings)
 
-        self._log_phase("Build execution step")
+        self._log_phase("build_execution_step", "Build execution step")
         step = self.controller.build_step(task)
 
-        self._log_phase("Execute step")
+        self._log_phase("execute_step", "Execute step")
         response = self.executor.execute(step)
 
         if self.output_path:

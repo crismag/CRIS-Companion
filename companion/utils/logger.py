@@ -13,6 +13,7 @@ def get_logger(name: str) -> logging.Logger:
         return logger
 
     logger.setLevel(logging.INFO)
+    logger.propagate = False
     handler = logging.StreamHandler()
     handler.setFormatter(logging.Formatter("%(levelname)s %(name)s: %(message)s"))
     logger.addHandler(handler)

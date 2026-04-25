@@ -7,13 +7,16 @@ from pathlib import Path
 
 from companion.config.loader import get_config
 
+# Repository root, resolved relative to this file so it is CWD-independent.
+_REPO_ROOT = Path(__file__).resolve().parents[2]
+
 
 class TemplateLoader:
     """Load prompt templates from config-driven template directories."""
 
-    def __init__(self) -> None:
+    def __init__(self, base_path: Path | None = None) -> None:
         self.cfg = get_config()
-        self.base_path = Path.cwd()
+        self.base_path = base_path if base_path is not None else _REPO_ROOT
 
     def _get_profile_path(self) -> Path:
         templates_cfg = self.cfg["templates"]

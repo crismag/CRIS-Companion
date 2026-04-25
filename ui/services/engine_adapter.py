@@ -27,6 +27,7 @@ def _attach_ui_handler(
     for handler in list(engine_logger.handlers):
         if isinstance(handler, SessionLogHandler):
             engine_logger.removeHandler(handler)
+            handler.close()
 
     ui_handler = SessionLogHandler(on_log)
     ui_handler.setFormatter(logging.Formatter("%(levelname)s %(name)s: %(message)s"))
@@ -55,3 +56,4 @@ def execute_task(
     finally:
         if ui_handler in engine.logger.handlers:
             engine.logger.removeHandler(ui_handler)
+            ui_handler.close()
