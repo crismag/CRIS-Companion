@@ -11,8 +11,8 @@ def _model_options(settings: dict) -> list[str]:
     """Build model options list from current config settings."""
     options: list[str] = []
 
-    primary_model = settings.get("primary_model")
-    fallback_model = settings.get("fallback_model")
+    primary_model = settings["primary_model"]
+    fallback_model = settings["fallback_model"]
 
     if primary_model:
         options.append(primary_model)
@@ -28,7 +28,7 @@ def render_sidebar(settings: dict) -> dict:
     st.sidebar.header("Control Panel")
 
     model_options = _model_options(settings)
-    default_model = settings.get("primary_model")
+    default_model = settings["primary_model"]
     default_index = model_options.index(default_model) if default_model in model_options else 0
 
     selected_model = st.sidebar.selectbox(

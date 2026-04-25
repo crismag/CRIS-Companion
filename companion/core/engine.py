@@ -19,7 +19,12 @@ def _write_file(file_path: str, content: str) -> None:
 
 def _result_messages(settings: dict) -> dict:
     """Load result message text from settings."""
-    messages = settings.get("messages", {})
+    messages = settings.get("messages")
+    if not isinstance(messages, dict):
+        return {
+            "generated": "Generated response",
+            "generated_and_saved": "Generated response and saved file",
+        }
     return {
         "generated": messages.get("generated", "Generated response"),
         "generated_and_saved": messages.get(

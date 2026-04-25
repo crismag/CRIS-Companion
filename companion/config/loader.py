@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import json
 import os
 from functools import lru_cache
 from pathlib import Path
@@ -13,21 +12,21 @@ DEFAULT_CONFIG_PATH = "config/config.yaml"
 
 def _read_config_file(path: Path) -> dict:
     """Read configuration file from disk."""
-    content = path.read_text(encoding="utf-8")
+    import yaml
 
-    try:
-        import yaml  # type: ignore
+    with path.open("r", encoding="utf-8") as file_handle:
+        parsed = yaml.safe_load(file_handle)
+    if not isinstance(parsed, dict):
+        raise ValueError(f"Invalid configuration file '{path}': root object must be a mapping.")
+    return parsed
 
-        parsed = yaml.safe_load(content)
-        return parsed if isinstance(parsed, dict) else {}
-    except ModuleNotFoundError:
-        try:
-            parsed = json.loads(content)
-        except json.JSONDecodeError as exc:
-            raise ValueError(
-                f"Invalid configuration file '{path}': the file is not valid YAML or JSON."
-            ) from exc
-        return parsed if isinstance(parsed, dict) else {}
+
+def load_config_file(path: str | Path) -> dict:
+    """Load a YAML config file from an explicit path."""
+    return _read_config_file(Path(path))
+
+
+_REQUIRED_LLM_KEYS = ("ollama_url", "primary_model", "fallback_model", "request_timeout_seconds")
 
 
 @lru_cache(maxsize=1)
@@ -36,11 +35,24 @@ def get_config() -> dict:
     config_path = Path(os.getenv(CONFIG_PATH_ENV, DEFAULT_CONFIG_PATH))
     config_data = _read_config_file(config_path)
 
-    if not isinstance(config_data.get("llm"), dict):
+    llm = config_data.get("llm")
+    if not isinstance(llm, dict):
         raise ValueError("Invalid config: missing llm section")
+
+    missing_llm_keys = [k for k in _REQUIRED_LLM_KEYS if k not in llm]
+    if missing_llm_keys:
+        raise ValueError(
+            f"Invalid config: llm section is missing required key(s): {', '.join(sorted(missing_llm_keys))}"
+        )
 
     if not isinstance(config_data.get("templates"), dict):
         raise ValueError("Invalid config: missing templates section")
+
+    if not isinstance(config_data.get("messages"), dict):
+        raise ValueError("Invalid config: missing messages section")
+
+    if not isinstance(config_data.get("workflow"), dict):
+        raise ValueError("Invalid config: missing workflow section")
 
     return config_data
 
@@ -49,12 +61,14 @@ def load_settings() -> dict:
     """Return runtime settings from centralized config."""
     cfg = get_config()
     llm = cfg["llm"]
+    messages = cfg["messages"]
+    workflow = cfg["workflow"]
     return {
         "ollama_url": llm["ollama_url"],
         "primary_model": llm["primary_model"],
-        "fallback_model": llm.get("fallback_model"),
+        "fallback_model": llm["fallback_model"],
         "request_timeout_seconds": llm["request_timeout_seconds"],
         "templates": cfg["templates"],
-        "messages": cfg.get("messages", {}),
-        "workflow": cfg.get("workflow", {}),
+        "messages": messages,
+        "workflow": workflow,
     }

@@ -15,8 +15,15 @@ class TemplateLoader:
     """Load prompt templates from config-driven template directories."""
 
     def __init__(self, base_path: Path | None = None) -> None:
-        self.cfg = get_config()
+        self._cfg: dict | None = None  # loaded lazily to avoid coupling callers to get_config()
         self.base_path = base_path if base_path is not None else _REPO_ROOT
+
+    @property
+    def cfg(self) -> dict:
+        """Return the companion config, loading it on first access."""
+        if self._cfg is None:
+            self._cfg = get_config()
+        return self._cfg
 
     def _get_profile_path(self) -> Path:
         templates_cfg = self.cfg["templates"]
@@ -34,7 +41,18 @@ class TemplateLoader:
         path = self.base_path / templates_cfg["interfaces"][interface] / f"{name}.json"
         return self._load_json(path)
 
-    def _load_json(self, path: Path) -> dict:
+    def load_from_path(self, path: str | Path, required_keys: tuple[str, ...] | None = None) -> dict:
+        """Load template payload from an explicit JSON file path."""
+        resolved_path = Path(path)
+        if not resolved_path.is_absolute():
+            resolved_path = self.base_path / resolved_path
+
+        if required_keys is None:
+            return self._load_json(resolved_path, required_keys=())
+
+        return self._load_json(resolved_path, required_keys=required_keys)
+
+    def _load_json(self, path: Path, required_keys: tuple[str, ...] = ("system", "rules", "template")) -> dict:
         if not path.exists():
             raise FileNotFoundError(f"Template not found: {path}")
 
@@ -44,7 +62,7 @@ class TemplateLoader:
         if not isinstance(payload, dict):
             raise ValueError(f"Invalid template format: {path}")
 
-        for required_key in ("system", "rules", "template"):
+        for required_key in required_keys:
             if required_key not in payload:
                 raise ValueError(f"Missing key '{required_key}' in template: {path}")
 

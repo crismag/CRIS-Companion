@@ -2,13 +2,18 @@
 
 ## Configuration Layers
 
-1. YAML (`config.yaml`)
+1. Companion Runtime Config (default: `config/config.yaml`)
 
    - runtime settings
    - model config
    - feature flags
 
-2. JSON Templates
+2. Root Engine/Legacy CLI Config (`config.yaml`)
+
+   - engine module mappings
+   - logging settings for root CLI path
+
+3. JSON Templates
 
    - prompts
    - messaging formats
@@ -63,7 +68,7 @@ Example:
 
 ## Template Selection Flow
 
-1. Load active profile from `config.yaml`
+1. Load active profile from runtime config (`config/config.yaml` by default)
 2. Load template from corresponding directory
 3. Apply interface override if needed
 

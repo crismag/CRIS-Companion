@@ -7,11 +7,6 @@ import html
 import streamlit as st
 
 
-def _logs_to_text(logs: list[str]) -> str:
-    """Convert logs list into display text."""
-    return "\n".join(logs)
-
-
 def _render_scrollable_logs(
     container: st.delta_generator.DeltaGenerator,
     logs_text: str,
@@ -43,7 +38,7 @@ def update_logs_display(
         logs_placeholder.caption("No logs yet.")
         return
 
-    _render_scrollable_logs(logs_placeholder, _logs_to_text(logs))
+    _render_scrollable_logs(logs_placeholder, "\n".join(logs))
 
 
 def render_logs(logs: list[str]) -> None:
@@ -52,4 +47,4 @@ def render_logs(logs: list[str]) -> None:
         st.caption("No logs yet.")
         return
 
-    _render_scrollable_logs(st.container(), _logs_to_text(logs))
+    _render_scrollable_logs(st.container(), "\n".join(logs))

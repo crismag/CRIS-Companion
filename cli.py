@@ -16,25 +16,53 @@ import argparse
 import logging
 import sys
 
-import yaml
+from companion.config.loader import load_config_file
+from companion.utils.logger import configure_root_logger, get_logger
 
 from ui.adapter import EngineAdapter
+
+logger = get_logger(__name__)
 
 
 def _configure_logging(config_path: str = "config.yaml") -> None:
     try:
-        with open(config_path, encoding="utf-8") as fh:
-            cfg = yaml.safe_load(fh)
-        log_cfg = cfg.get("logging", {})
-        level = getattr(logging, log_cfg.get("level", "INFO"), logging.INFO)
-        fmt = log_cfg.get("format", "%(asctime)s [%(levelname)s] %(name)s — %(message)s")
-        datefmt = log_cfg.get("datefmt", "%Y-%m-%dT%H:%M:%S")
+        cfg = load_config_file(config_path)
+        log_cfg = cfg["logging"]
+        level = getattr(logging, log_cfg["level"])
+        fmt = log_cfg["format"]
+        datefmt = log_cfg["datefmt"]
+        configure_root_logger(level=level, fmt=fmt, datefmt=datefmt)
     except FileNotFoundError:
-        level = logging.INFO
-        fmt = "%(asctime)s [%(levelname)s] %(name)s — %(message)s"
-        datefmt = "%Y-%m-%dT%H:%M:%S"
-
-    logging.basicConfig(level=level, format=fmt, datefmt=datefmt)
+        print(
+            f"FATAL: Configuration file '{config_path}' was not found.\n"
+            "CRIS Companion requires a valid 'config.yaml' to run. "
+            "Please complete the setup step to generate or restore this file before using the CLI.",
+            file=sys.stderr,
+        )
+        sys.exit(1)
+    except KeyError as exc:
+        print(
+            f"FATAL: Missing required logging setting {exc} in '{config_path}'.\n"
+            "Please check your 'config.yaml' and ensure the 'logging' section contains "
+            "'level', 'format', and 'datefmt'.",
+            file=sys.stderr,
+        )
+        sys.exit(1)
+    except AttributeError:
+        print(
+            f"FATAL: Invalid logging level specified in '{config_path}'.\n"
+            "The 'logging.level' value must be a valid Python logging level "
+            "(e.g., DEBUG, INFO, WARNING, ERROR, CRITICAL).",
+            file=sys.stderr,
+        )
+        sys.exit(1)
+    except ValueError as exc:
+        print(
+            f"FATAL: Malformed configuration in '{config_path}': {exc}\n"
+            "Please ensure your 'config.yaml' is valid YAML with a root mapping.",
+            file=sys.stderr,
+        )
+        sys.exit(1)
 
 
 def _build_parser() -> argparse.ArgumentParser:
@@ -62,34 +90,42 @@ def _build_parser() -> argparse.ArgumentParser:
 
 def _run(args: argparse.Namespace, adapter: EngineAdapter) -> int:
     """Dispatch parsed CLI arguments to the adapter and print the result."""
-    if args.command == "review":
-        with open(args.file, encoding="utf-8") as fh:
-            code = fh.read()
-        context = {"code": code}
-        task_type = "review"
-
-    elif args.command == "generate":
-        context = {"description": args.description, "language": args.language}
-        task_type = "generate"
-
-    elif args.command == "refactor":
-        with open(args.file, encoding="utf-8") as fh:
-            code = fh.read()
-        context = {"code": code}
-        task_type = "refactor"
-
-    else:
+    task = _resolve_task(args)
+    if task is None:
+        logger.error("Unknown command: %s", args.command)
         print(f"Unknown command: {args.command}", file=sys.stderr)
         return 1
 
+    task_type, context = task
     response = adapter.run_task(task_type=task_type, context=context)
 
     if response["status"] == "ok":
         print(response["result"])
         return 0
     else:
+        logger.error("Command failed: %s", response["error"])
         print(f"Error: {response['error']}", file=sys.stderr)
         return 1
+
+
+def _read_text_file(path: str) -> str:
+    """Read and return UTF-8 text file contents."""
+    with open(path, encoding="utf-8") as fh:
+        return fh.read()
+
+
+def _resolve_task(args: argparse.Namespace) -> tuple[str, dict] | None:
+    """Map CLI arguments to (task_type, context)."""
+    if args.command == "review":
+        return "review", {"code": _read_text_file(args.file)}
+
+    if args.command == "generate":
+        return "generate", {"description": args.description, "language": args.language}
+
+    if args.command == "refactor":
+        return "refactor", {"code": _read_text_file(args.file)}
+
+    return None
 
 
 def main() -> None:

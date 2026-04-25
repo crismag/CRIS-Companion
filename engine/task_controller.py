@@ -1,7 +1,7 @@
 """TaskController — static mapping from task type to module name."""
-import logging
+from companion.utils.logger import get_logger
 
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
 
 # Type alias
 TaskType = str

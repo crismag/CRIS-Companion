@@ -4,29 +4,40 @@ Pipeline:
     Task → select_module → build_step → execute → refactor → result
 """
 import json
-import logging
 import os
+from pathlib import Path
 from typing import Any
 
-import yaml
+from companion.config.loader import load_config_file
+from companion.prompting.builder import PromptBuilder
+from companion.utils.logger import get_logger
 
 from engine.execution_step import ExecutionStep
 from engine.step_executor import OllamaClient, StepExecutor
 from engine.task_controller import TaskController
 
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
 
 _CONFIG_PATH = os.path.join(os.path.dirname(__file__), "..", "config.yaml")
 
 
-def _load_config(path: str) -> dict[str, Any]:
-    with open(path, encoding="utf-8") as fh:
-        return yaml.safe_load(fh)
+def _load_json_template(path: str | Path) -> dict[str, Any]:
+    """Load a JSON template from an explicit file path.
 
-
-def _load_template(template_path: str) -> dict[str, str]:
-    with open(template_path, encoding="utf-8") as fh:
-        return json.load(fh)
+    This is a lightweight helper used by the legacy engine so that creating an
+    Engine instance never triggers the companion ``get_config()`` / config
+    validation path.  It intentionally has no dependency on
+    ``companion.config`` beyond plain JSON file I/O.
+    """
+    path_obj = Path(path)
+    resolved = path_obj if path_obj.is_absolute() else Path(__file__).parent / path_obj
+    if not resolved.exists():
+        raise FileNotFoundError(f"Template not found: {resolved}")
+    with resolved.open("r", encoding="utf-8") as fh:
+        payload = json.load(fh)
+    if not isinstance(payload, dict):
+        raise ValueError(f"Invalid template format (expected a JSON object): {resolved}")
+    return payload
 
 
 class Engine:
@@ -40,7 +51,7 @@ class Engine:
     """
 
     def __init__(self, config_path: str = _CONFIG_PATH) -> None:
-        cfg = _load_config(config_path)
+        cfg = load_config_file(config_path)
         self._cfg = cfg
 
         engine_cfg = cfg["engine"]
@@ -59,6 +70,7 @@ class Engine:
         )
         self._executor = StepExecutor(client=client, model=self._model)
         self._modules_cfg = cfg["modules"]
+        self._prompt_builder = PromptBuilder()
 
     # ------------------------------------------------------------------
     # Public entry point
@@ -92,13 +104,8 @@ class Engine:
     def _build_step(self, module_name: str, context: dict[str, Any]) -> ExecutionStep:
         """Phase 2 of 4 — build the ExecutionStep from template + context."""
         logger.info("[build_step] module=%s", module_name)
-        module_cfg = self._modules_cfg[module_name]
-        template_path = os.path.join(
-            os.path.dirname(__file__), "..", module_cfg["template"]
-        )
-        template = _load_template(template_path)
-
-        user_prompt = template["user"].format_map(context)
+        template = self._load_module_template(module_name)
+        user_prompt = self._build_user_prompt(template["user"], context)
         step = ExecutionStep(
             module=module_name,
             system_prompt=template["system"],
@@ -126,3 +133,26 @@ class Engine:
         result = step.result
         logger.info("[refactor] phase complete, module=%s", step.module)
         return result
+
+    def _load_module_template(self, module_name: str) -> dict[str, Any]:
+        """Load the configured template payload for a module."""
+        module_cfg = self._modules_cfg[module_name]
+        template_path = os.path.join(
+            os.path.dirname(__file__), "..", module_cfg["template"]
+        )
+        template = _load_json_template(template_path)
+        missing_keys = [key for key in ("system", "user") if key not in template]
+        if missing_keys:
+            missing_keys_str = ", ".join(sorted(missing_keys))
+            raise ValueError(
+                f"Invalid template for module '{module_name}' at '{template_path}': "
+                f"missing required key(s): {missing_keys_str}"
+            )
+        return template
+
+    def _build_user_prompt(self, user_template: str, context: dict[str, Any]) -> str:
+        """Build user prompt text from template and context."""
+        return self._prompt_builder.build(
+            {"system": "", "rules": [], "template": user_template},
+            context,
+        )
