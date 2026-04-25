@@ -40,11 +40,26 @@ def _configure_logging(config_path: str = "config.yaml") -> None:
             file=sys.stderr,
         )
         sys.exit(1)
-    except (KeyError, AttributeError, ValueError) as exc:
+    except KeyError as exc:
         print(
-            f"FATAL: Configuration error in '{config_path}': {exc}\n"
-            "Please check your 'config.yaml' and ensure all required logging settings "
-            "(level, format, datefmt) are present and correct.",
+            f"FATAL: Missing required logging setting {exc} in '{config_path}'.\n"
+            "Please check your 'config.yaml' and ensure the 'logging' section contains "
+            "'level', 'format', and 'datefmt'.",
+            file=sys.stderr,
+        )
+        sys.exit(1)
+    except AttributeError:
+        print(
+            f"FATAL: Invalid logging level specified in '{config_path}'.\n"
+            "The 'logging.level' value must be a valid Python logging level "
+            "(e.g., DEBUG, INFO, WARNING, ERROR, CRITICAL).",
+            file=sys.stderr,
+        )
+        sys.exit(1)
+    except ValueError as exc:
+        print(
+            f"FATAL: Malformed configuration in '{config_path}': {exc}\n"
+            "Please ensure your 'config.yaml' is valid YAML with a root mapping.",
             file=sys.stderr,
         )
         sys.exit(1)
