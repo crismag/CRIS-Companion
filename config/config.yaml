@@ -1,0 +1,41 @@
+{
+  "llm": {
+    "ollama_url": "http://localhost:11434",
+    "request_timeout_seconds": 60,
+    "primary_model": "deepseek-coder:6.7b",
+    "fallback_model": "codellama:7b"
+  },
+  "templates": {
+    "active_profile": "default",
+    "profiles": {
+      "default": "config/templates/default",
+      "deepseek": "config/templates/deepseek",
+      "codellama": "config/templates/codellama"
+    },
+    "interfaces": {
+      "rest": "config/templates/rest",
+      "vscode": "config/templates/vscode"
+    }
+  },
+  "messages": {
+    "generated": "Generated response",
+    "generated_and_saved": "Generated response and saved file"
+  },
+  "_purpose": "Primary runtime configuration for CRIS Companion control plane and engine behavior.",
+  "_notes": {
+    "llm": "LLM endpoint/model settings used by engine adapter and forge client.",
+    "templates": "Active prompt template profile and interface mappings.",
+    "messages": "User-facing status messages for generated results.",
+    "workflow": "Execution mode controls. Keep single_pass defaults unless explicitly evolving workflow."
+  },
+  "workflow": {
+    "mode": "single_pass",
+    "enable_refactor": false,
+    "enable_validation": false,
+    "max_iterations": 1,
+    "_comment_mode": "single_pass keeps deterministic one-shot behavior.",
+    "_comment_enable_refactor": "Refactor phase toggle. Disabled by default to preserve current behavior.",
+    "_comment_enable_validation": "Validation phase toggle. Disabled by default to preserve current behavior.",
+    "_comment_max_iterations": "Guardrail for future iterative mode; 1 keeps single-pass execution."
+  }
+}

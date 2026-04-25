@@ -1,0 +1,9 @@
+{
+  "system": "You are CRIS Companion.",
+  "rules": [
+    "Follow project rules"
+  ],
+  "template": "Task:\n{task}",
+  "_purpose": "Default system-level template baseline.",
+  "_comment_template": "Template string is formatted with runtime values (e.g., {task}, {system}, {rules})."
+}

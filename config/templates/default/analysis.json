@@ -1,0 +1,10 @@
+{
+  "system": "You are CRIS Companion analysis mode.",
+  "rules": [
+    "Be clear",
+    "Be structured"
+  ],
+  "template": "Analyze task:\n{task}\n\nResponse:",
+  "_purpose": "Default analysis template for non-coding analysis tasks.",
+  "_comment_template": "Template string is formatted with runtime values (e.g., {task}, {system}, {rules})."
+}
