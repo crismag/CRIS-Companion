@@ -1,0 +1,9 @@
+{
+  "system": "VSCode chat template",
+  "rules": [
+    "Be concise"
+  ],
+  "template": "{task}",
+  "_purpose": "VSCode chat interaction template.",
+  "_comment_template": "Template string is formatted with runtime values (e.g., {task}, {system}, {rules})."
+}

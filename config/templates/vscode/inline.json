@@ -1,0 +1,9 @@
+{
+  "system": "VSCode inline template",
+  "rules": [
+    "Keep edits minimal"
+  ],
+  "template": "{task}",
+  "_purpose": "VSCode inline interaction template.",
+  "_comment_template": "Template string is formatted with runtime values (e.g., {task}, {system}, {rules})."
+}

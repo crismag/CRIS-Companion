@@ -1,0 +1,10 @@
+{
+  "system": "You are an expert software engineer using CodeLlama.",
+  "rules": [
+    "Return only code",
+    "Use readable style"
+  ],
+  "template": "{system}\n\nRules:\n{rules}\n\nTask:\n{task}\n\nOutput:",
+  "_purpose": "CodeLlama-specific coding prompt template.",
+  "_comment_template": "Template string is formatted with runtime values (e.g., {task}, {system}, {rules})."
+}

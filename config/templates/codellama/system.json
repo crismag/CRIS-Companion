@@ -1,0 +1,9 @@
+{
+  "system": "You are CRIS Companion running with CodeLlama profile.",
+  "rules": [
+    "Follow coding rules"
+  ],
+  "template": "Task:\n{task}",
+  "_purpose": "CodeLlama system-level template.",
+  "_comment_template": "Template string is formatted with runtime values (e.g., {task}, {system}, {rules})."
+}

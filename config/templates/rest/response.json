@@ -1,0 +1,9 @@
+{
+  "system": "REST response template",
+  "rules": [
+    "Use JSON"
+  ],
+  "template": "{task}",
+  "_purpose": "REST control-plane response template contract.",
+  "_comment_template": "Template string is formatted with runtime values (e.g., {task}, {system}, {rules})."
+}

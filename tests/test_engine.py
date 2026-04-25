@@ -1,94 +1,101 @@
-"""End-to-end tests for the Engine using a fake LLM client."""
-import os
-import sys
-import types
-import pytest
+"""Tests for CRIS Companion step-based engine behavior."""
 
-# Ensure repo root is on sys.path for imports
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
+from __future__ import annotations
 
-from engine.execution_step import ExecutionStep
-from engine.step_executor import StepExecutor
-from engine.task_controller import TaskController
-from engine.engine import Engine
+from pathlib import Path
+
+import companion.core.engine as engine_module
+from companion.controllers.task_controller import TaskController
+from companion.core.executor import StepExecutor
+from companion.core.engine import run_engine
+from companion.core.step import ExecutionStep
 
 
-class FakeLLMClient:
-    def __init__(self, response: str = "engine test output") -> None:
+class _FakeProvider:
+    """Simple provider stub for deterministic unit tests."""
+
+    def __init__(self, response: str = "print('ok')") -> None:
         self.response = response
-        self.call_count = 0
+        self.prompts: list[str] = []
 
-    def chat(self, model: str, system: str, user: str) -> str:
-        self.call_count += 1
+    def generate(self, prompt: str) -> str:
+        self.prompts.append(prompt)
         return self.response
 
 
-def make_engine_with_fake_client(tmp_path, response="test result") -> tuple[Engine, FakeLLMClient]:
-    """Build a real Engine wired to a fake LLM client."""
-    import yaml, json, pathlib
+class _FakeTemplateLoader:
+    """Template loader stub that returns a coding template."""
 
-    # Write a minimal config.yaml
-    cfg = {
-        "engine": {"model": "test-model", "base_url": "http://localhost:11434", "timeout": 10},
-        "modules": {
-            "code_review": {"template": "templates/code_review.json", "description": "Review"},
-            "code_generation": {"template": "templates/code_generation.json", "description": "Gen"},
-            "refactor": {"template": "templates/refactor.json", "description": "Refactor"},
-        },
-        "task_controller": {
-            "default_module": "code_review",
-            "mappings": {"review": "code_review", "generate": "code_generation", "refactor": "refactor"},
-        },
-        "logging": {"level": "DEBUG"},
+    def load(self, name: str) -> dict:
+        assert name == "coding"
+        return {
+            "system": "You are CRIS Companion",
+            "rules": ["Return code only"],
+            "template": "{system}\n\nRules:\n{rules}\n\nTask:\n{task}\n\nOutput:",
+        }
+
+
+def _settings() -> dict:
+    """Return minimal settings for engine tests."""
+    return {
+        "ollama_url": "http://localhost:11434",
+        "primary_model": "x",
+        "fallback_model": "y",
+        "request_timeout_seconds": 1,
     }
-    config_path = tmp_path / "config.yaml"
-    config_path.write_text(yaml.dump(cfg))
-
-    # Copy templates into tmp_path
-    repo_root = pathlib.Path(__file__).parent.parent
-    tmpl_dir = tmp_path / "templates"
-    tmpl_dir.mkdir()
-    for name in ("code_review.json", "code_generation.json", "refactor.json"):
-        src = repo_root / "templates" / name
-        (tmpl_dir / name).write_text(src.read_text())
-
-    engine = Engine(config_path=str(config_path))
-
-    # Inject fake client
-    fake = FakeLLMClient(response=response)
-    executor = StepExecutor(client=fake, model="test-model")
-    engine._executor = executor
-
-    return engine, fake
 
 
-def test_engine_run_returns_result(tmp_path):
-    engine, fake = make_engine_with_fake_client(tmp_path, response="review output")
-    result = engine.run(task_type="review", context={"code": "x = 1"})
-    assert result == "review output"
+def test_task_controller_builds_single_coding_step() -> None:
+    """TaskController should always map task input to one coding step."""
+    step = TaskController().build_step("  create a hello world script  ")
+
+    assert step.name == "generate_code"
+    assert step.intent == "coding"
+    assert step.template == "coding"
+    assert step.inputs == {"task": "create a hello world script"}
 
 
-def test_engine_calls_llm_exactly_once(tmp_path):
-    engine, fake = make_engine_with_fake_client(tmp_path)
-    engine.run(task_type="review", context={"code": "x = 1"})
-    assert fake.call_count == 1
+def test_step_executor_renders_prompt_and_calls_provider() -> None:
+    """StepExecutor should build prompt from template and dispatch to provider."""
+    provider = _FakeProvider(response="print('hello')")
+    executor = StepExecutor(provider, template_loader=_FakeTemplateLoader())
+    step = ExecutionStep(
+        name="generate_code",
+        intent="coding",
+        template="coding",
+        inputs={"task": "create a hello world script"},
+    )
+
+    result = executor.execute(step)
+
+    assert result == "print('hello')"
+    assert provider.prompts
+    assert "You are CRIS Companion" in provider.prompts[0]
+    assert "Task:\ncreate a hello world script" in provider.prompts[0]
 
 
-def test_engine_refactor_phase_does_not_modify_result(tmp_path):
-    """The refactor phase must be a pass-through in Phase 1."""
-    engine, fake = make_engine_with_fake_client(tmp_path, response="original result")
-    result = engine.run(task_type="review", context={"code": "x = 1"})
-    assert result == "original result"
+def test_engine_returns_generated_response(monkeypatch) -> None:
+    """Engine should return provider output for a plain task."""
+    monkeypatch.setattr(engine_module, "get_provider", lambda settings: _FakeProvider("print(1)"))
+
+    result = run_engine("write a python function to add two numbers", _settings())
+
+    assert result["status"] == "ok"
+    assert result["response"] == "print(1)"
 
 
-def test_engine_select_module_uses_task_controller(tmp_path):
-    engine, _ = make_engine_with_fake_client(tmp_path)
-    # The controller has a static mapping; verify it resolves the module
-    module = engine._controller.select_module("generate")
-    assert module == "code_generation"
+def test_engine_writes_file_when_output_path_is_provided(tmp_path: Path, monkeypatch) -> None:
+    """Engine should write output when output_path is explicitly set."""
+    monkeypatch.setattr(engine_module, "get_provider", lambda settings: _FakeProvider("print('file')"))
+    target_file = tmp_path / "hello.py"
 
+    result = run_engine(
+        "create hello world script",
+        _settings(),
+        output_path=str(target_file),
+    )
 
-def test_engine_unknown_task_type_uses_default(tmp_path):
-    engine, fake = make_engine_with_fake_client(tmp_path, response="default output")
-    result = engine.run(task_type="unknown", context={"code": "x = 1"})
-    assert result == "default output"
+    assert result["status"] == "ok"
+    assert result["file_path"] == str(target_file)
+    assert target_file.exists()
+    assert target_file.read_text(encoding="utf-8").strip() == "print('file')"
