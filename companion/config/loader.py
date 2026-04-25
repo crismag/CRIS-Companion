@@ -42,7 +42,7 @@ def get_config() -> dict:
     missing_llm_keys = [k for k in _REQUIRED_LLM_KEYS if k not in llm]
     if missing_llm_keys:
         raise ValueError(
-            f"Invalid config: llm section is missing required key(s): {', '.join(missing_llm_keys)}"
+            f"Invalid config: llm section is missing required key(s): {', '.join(sorted(missing_llm_keys))}"
         )
 
     if not isinstance(config_data.get("templates"), dict):
