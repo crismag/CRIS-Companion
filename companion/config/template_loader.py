@@ -48,7 +48,7 @@ class TemplateLoader:
             resolved_path = self.base_path / resolved_path
 
         if required_keys is None:
-            return self._load_json(resolved_path)
+            return self._load_json(resolved_path, required_keys=())
 
         return self._load_json(resolved_path, required_keys=required_keys)
 
