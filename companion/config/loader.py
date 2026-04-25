@@ -26,14 +26,24 @@ def load_config_file(path: str | Path) -> dict:
     return _read_config_file(Path(path))
 
 
+_REQUIRED_LLM_KEYS = ("ollama_url", "primary_model", "fallback_model", "request_timeout_seconds")
+
+
 @lru_cache(maxsize=1)
 def get_config() -> dict:
     """Load and cache project configuration from config file."""
     config_path = Path(os.getenv(CONFIG_PATH_ENV, DEFAULT_CONFIG_PATH))
     config_data = _read_config_file(config_path)
 
-    if not isinstance(config_data.get("llm"), dict):
+    llm = config_data.get("llm")
+    if not isinstance(llm, dict):
         raise ValueError("Invalid config: missing llm section")
+
+    missing_llm_keys = [k for k in _REQUIRED_LLM_KEYS if k not in llm]
+    if missing_llm_keys:
+        raise ValueError(
+            f"Invalid config: llm section is missing required key(s): {', '.join(missing_llm_keys)}"
+        )
 
     if not isinstance(config_data.get("templates"), dict):
         raise ValueError("Invalid config: missing templates section")

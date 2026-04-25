@@ -15,8 +15,15 @@ class TemplateLoader:
     """Load prompt templates from config-driven template directories."""
 
     def __init__(self, base_path: Path | None = None) -> None:
-        self.cfg = get_config()
+        self._cfg: dict | None = None  # loaded lazily to avoid coupling callers to get_config()
         self.base_path = base_path if base_path is not None else _REPO_ROOT
+
+    @property
+    def cfg(self) -> dict:
+        """Return the companion config, loading it on first access."""
+        if self._cfg is None:
+            self._cfg = get_config()
+        return self._cfg
 
     def _get_profile_path(self) -> Path:
         templates_cfg = self.cfg["templates"]
@@ -44,6 +51,7 @@ class TemplateLoader:
             return self._load_json(resolved_path)
 
         return self._load_json(resolved_path, required_keys=required_keys)
+
     def _load_json(self, path: Path, required_keys: tuple[str, ...] = ("system", "rules", "template")) -> dict:
         if not path.exists():
             raise FileNotFoundError(f"Template not found: {path}")

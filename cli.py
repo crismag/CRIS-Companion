@@ -17,7 +17,7 @@ import logging
 import sys
 
 from companion.config.loader import load_config_file
-from companion.utils.logger import get_logger
+from companion.utils.logger import configure_root_logger, get_logger
 
 from ui.adapter import EngineAdapter
 
@@ -31,7 +31,7 @@ def _configure_logging(config_path: str = "config.yaml") -> None:
         level = getattr(logging, log_cfg["level"])
         fmt = log_cfg["format"]
         datefmt = log_cfg["datefmt"]
-        logging.basicConfig(level=level, format=fmt, datefmt=datefmt)
+        configure_root_logger(level=level, fmt=fmt, datefmt=datefmt)
     except FileNotFoundError:
         print(
             f"FATAL: Configuration file '{config_path}' was not found.\n"
