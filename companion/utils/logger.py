@@ -4,8 +4,6 @@ from __future__ import annotations
 
 import logging
 
-_DEFAULT_FORMAT = "%(levelname)s %(name)s: %(message)s"
-
 
 def configure_root_logger(level: int, fmt: str, datefmt: str | None = None) -> None:
     """Configure the root logger with the given level and format.

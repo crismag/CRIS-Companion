@@ -3,12 +3,12 @@
 Pipeline:
     Task → select_module → build_step → execute → refactor → result
 """
+import json
 import os
 from pathlib import Path
 from typing import Any
 
 from companion.config.loader import load_config_file
-from companion.config.template_loader import TemplateLoader
 from companion.prompting.builder import PromptBuilder
 from companion.utils.logger import get_logger
 
@@ -19,6 +19,24 @@ from engine.task_controller import TaskController
 logger = get_logger(__name__)
 
 _CONFIG_PATH = os.path.join(os.path.dirname(__file__), "..", "config.yaml")
+
+
+def _load_json_template(path: str | Path) -> dict[str, Any]:
+    """Load a JSON template from an explicit file path.
+
+    This is a lightweight helper used by the legacy engine so that creating an
+    Engine instance never triggers the companion ``get_config()`` / config
+    validation path.  It intentionally has no dependency on
+    ``companion.config`` beyond plain JSON file I/O.
+    """
+    resolved = Path(path) if Path(path).is_absolute() else Path(os.path.dirname(__file__)) / path
+    if not resolved.exists():
+        raise FileNotFoundError(f"Template not found: {resolved}")
+    with resolved.open("r", encoding="utf-8") as fh:
+        payload = json.load(fh)
+    if not isinstance(payload, dict):
+        raise ValueError(f"Invalid template format (expected a JSON object): {resolved}")
+    return payload
 
 
 class Engine:
@@ -51,7 +69,6 @@ class Engine:
         )
         self._executor = StepExecutor(client=client, model=self._model)
         self._modules_cfg = cfg["modules"]
-        self._template_loader = TemplateLoader(base_path=Path(os.path.dirname(__file__)))
         self._prompt_builder = PromptBuilder()
 
     # ------------------------------------------------------------------
@@ -122,7 +139,7 @@ class Engine:
         template_path = os.path.join(
             os.path.dirname(__file__), "..", module_cfg["template"]
         )
-        template = self._template_loader.load_from_path(template_path)
+        template = _load_json_template(template_path)
         missing_keys = [key for key in ("system", "user") if key not in template]
         if missing_keys:
             missing_keys_str = ", ".join(sorted(missing_keys))
