@@ -5,12 +5,12 @@ Rules:
 * All execution goes through :class:`engine.engine.Engine`.
 * The adapter surfaces logs, phases, and the final result.
 """
-import logging
 from typing import Any
 
+from companion.utils.logger import get_logger
 from engine.engine import Engine
 
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
 
 
 class EngineAdapter:

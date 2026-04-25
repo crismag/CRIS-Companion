@@ -34,7 +34,11 @@ class TemplateLoader:
         path = self.base_path / templates_cfg["interfaces"][interface] / f"{name}.json"
         return self._load_json(path)
 
-    def _load_json(self, path: Path) -> dict:
+    def load_from_path(self, path: str | Path) -> dict:
+        """Load template payload from an explicit JSON file path."""
+        return self._load_json(Path(path), required_keys=())
+
+    def _load_json(self, path: Path, required_keys: tuple[str, ...] = ("system", "rules", "template")) -> dict:
         if not path.exists():
             raise FileNotFoundError(f"Template not found: {path}")
 
@@ -44,7 +48,7 @@ class TemplateLoader:
         if not isinstance(payload, dict):
             raise ValueError(f"Invalid template format: {path}")
 
-        for required_key in ("system", "rules", "template"):
+        for required_key in required_keys:
             if required_key not in payload:
                 raise ValueError(f"Missing key '{required_key}' in template: {path}")
 

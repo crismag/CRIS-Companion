@@ -4,17 +4,19 @@ CRIS Companion is the assistant layer of the CRIS platform.
 
 ## Responsibilities
 - Interpret user intent
-- Load relevant context (files, repo)
-- Route tasks to CRIS Forge
+- Build execution step from user task
+- Load templates and build prompts
+- Call provider integration
 - Format and present results
 
 ## High-Level Flow
 
-User Input → CLI → Engine → Router → Forge Client → LLM/Tools → Response
+User Input → CLI/UI → Engine → TaskController → StepExecutor → Provider → Response
 
 ## Key Components
 
 - Engine: main orchestration loop
-- Router: decides which model/tool to use
-- Forge Client: communicates with CRIS Forge
-- Context Loader: extracts relevant files/code
+- TaskController: converts task input into one execution step
+- StepExecutor: loads template, builds prompt, calls provider
+- TemplateLoader: resolves template payloads from config-selected profile
+- Forge Client / Provider Factory: provider integration for text generation

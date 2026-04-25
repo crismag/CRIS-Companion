@@ -2,12 +2,13 @@
 
 No other module in the engine may call the LLM directly.
 """
-import logging
 from typing import Protocol
+
+from companion.utils.logger import get_logger
 
 from engine.execution_step import ExecutionStep
 
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
 
 
 class LLMClient(Protocol):

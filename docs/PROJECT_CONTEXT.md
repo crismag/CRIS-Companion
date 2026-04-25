@@ -32,9 +32,9 @@ CRIS Companion is a config-driven system.
 
 ALL runtime behavior must be controlled via:
 
-- `config/config.yaml`
+- `config/config.yaml` (default companion runtime config)
 - `config/templates/*`
-- `config/*.json` (structured configs)
+- `config.yaml` (root engine/legacy CLI config)
 
 No hardcoded values are allowed.
 
@@ -111,4 +111,4 @@ System:
 - NO hardcoded model configs
 - NO hardcoded paths
 - ALL templates must come from `config/templates`
-- ALL config must come from `config.yaml`
+- ALL config must come from YAML config files (`config/config.yaml` by default for companion runtime)
