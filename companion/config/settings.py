@@ -10,6 +10,8 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Any
 
+import yaml
+
 _FALLBACK_OLLAMA_URL = "http://localhost:11434"
 _FALLBACK_PRIMARY_MODEL = "deepseek-coder:6.7b"
 _FALLBACK_FALLBACK_MODEL = "codellama:7b"
@@ -22,10 +24,9 @@ def _load_config() -> dict:
     if not config_path.is_file():
         return {}
 
-    import yaml  # noqa: PLC0415 – deferred to keep startup cost low
+    with config_path.open("r", encoding="utf-8") as config_file:
+        data = yaml.safe_load(config_file) or {}
 
-    content = config_path.read_text(encoding="utf-8")
-    data = yaml.safe_load(content)
     return data if isinstance(data, dict) else {}
 
 
